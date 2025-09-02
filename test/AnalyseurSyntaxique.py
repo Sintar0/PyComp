@@ -50,17 +50,7 @@ class AnalyseurSyntaxique:
             return self.S()
 
     def E(self):
-        global T
-
-        # On lit la première sous-expression
-        noeud = self.P()
-
-        # Si juste après, il y a un signe unaire, on relit la suite
-        if T.type in (TokenType.tok_plus, TokenType.tok_moins):
-            # On ignore ce qu'on avait trouvé avant, on repart sur la suite
-            noeud = self.P()
-
-        return noeud
+        return self.P()
 
     
     def S(self):
