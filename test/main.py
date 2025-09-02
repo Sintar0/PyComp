@@ -1,7 +1,7 @@
 from AnalyseurSyntaxique import AnalyseurSyntaxique, Node
 from AnalyseurLexicale import init_from_file, next, T
 
-DEBUG_LEXER = True  # ← Active/désactive le mode debug de l’analyse lexicale
+DEBUG_LEXER = False  # ← Active/désactive le mode debug de l’analyse lexicale
 
 def analyse_semantique(arbre_syntaxique):
     print("=== Analyse sémantique (bidon) ===")
