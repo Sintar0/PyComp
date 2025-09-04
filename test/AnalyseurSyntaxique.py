@@ -71,3 +71,25 @@ class AnalyseurSyntaxique:
         else:
             LEX.erreur(f"Expression atomique attendue, trouvé: {(LEX.T.type.name if LEX.T else 'None')}")
             return None
+
+    def I(self):
+        if LEX.check(TokenType.tok_debug):
+            LEX.accept(TokenType.tok_debug)
+            expr = self.E(0)
+            if not LEX.match(TokenType.tok_point_virgule):
+                LEX.erreur("';' attendu")
+                return None
+            return self.node_1_enfant(NodeTypes.node_debug, expr)
+        elif LEX.check(TokenType.tok_accolade_ouvrante):
+            LEX.accept(TokenType.tok_accolade_ouvrante)
+            instructions = []
+            while not LEX.check(TokenType.tok_accolade_fermeante):
+                instructions.append(self.I())
+            LEX.accept(TokenType.tok_accolade_fermeante)
+            return self.node_1_enfant(NodeTypes.node_block, instructions)
+        else:
+            expr = self.E(0)
+            if not LEX.match(TokenType.tok_point_virgule):
+                LEX.erreur("';' attendu")
+                return None
+            return self.node_1_enfant(NodeTypes.node_stmt_expr, expr)

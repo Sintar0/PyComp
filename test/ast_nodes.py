@@ -21,6 +21,9 @@ class NodeTypes(Enum):
     # logiques
     node_et = 24
     node_ou = 25
+    node_block = 26
+    node_debug = 27
+    node_stmt_expr = 28
 
 class Node:
     def __init__(self, type, valeur=0, chaine="", enfants=None):
