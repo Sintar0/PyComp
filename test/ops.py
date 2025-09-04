@@ -46,9 +46,9 @@ NF = {
     NodeTypes.node_et: lambda n: ["and"],
     NodeTypes.node_ou: lambda n: ["or"],
 
-    NodeTypes.node_block: lambda n: ["start"] + [GenNode(child) for child in n.enfants] + ["halt"],
-    NodeTypes.node_debug: lambda n: [GenNode(n.enfants[0]), "dbg"],
-    NodeTypes.node_stmt_expr: lambda n: [GenNode(n.enfants[0]), "drop 1"],
+    NodeTypes.node_block: lambda n: ["start"] + sum([GenNode(child) for child in n.enfants], []) + ["halt"],
+    NodeTypes.node_debug: lambda n: GenNode(n.enfants[0]) + ["dbg"],
+    NodeTypes.node_drop: lambda n: GenNode(n.enfants[0]) + ["drop 1"],
 }
 
 def GenNode(n: Node):

@@ -24,6 +24,7 @@ class NodeTypes(Enum):
     node_block = 26
     node_debug = 27
     node_stmt_expr = 28
+    node_drop = 29
 
 class Node:
     def __init__(self, type, valeur=0, chaine="", enfants=None):
@@ -42,3 +43,17 @@ class Node:
                 return f"{n.type.name}:{payload}"
             return f"({n.type.name} " + " ".join(_rec(c) for c in n.enfants) + ")"
         print(_rec(self))
+    
+    def node_1_enfant(self, type, enfant):
+        n = Node(type)
+        n.ajouter_enfant(enfant)
+        return n
+
+    def node_2_enfants(self, type, gauche, droite):
+        n = Node(type)
+        n.ajouter_enfant(gauche)
+        n.ajouter_enfant(droite)
+        return n
+
+    def node_simple(self, type, valeur):
+        return Node(type, valeur, "")

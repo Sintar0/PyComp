@@ -8,7 +8,7 @@ class AnalyseurSyntaxique:
     def __init__(self, filepath):
         # init pédagogique: place déjà LEX.T sur le 1er token
         LEX.init_from_file(filepath)
-        self.arbre = self.E(0)
+        self.arbre = self.I()
 
     # helpers
     def node_valeur(self, type, valeur, chaine=""):
@@ -23,6 +23,12 @@ class AnalyseurSyntaxique:
         n = Node(type)
         n.ajouter_enfant(gauche)
         n.ajouter_enfant(droite)
+        return n
+
+    def node_block_node(self, enfants):
+        n = Node(NodeTypes.node_block)
+        for enfant in enfants:
+            n.ajouter_enfant(enfant)
         return n
 
     # grammaire
@@ -74,22 +80,24 @@ class AnalyseurSyntaxique:
 
     def I(self):
         if LEX.check(TokenType.tok_debug):
-            LEX.accept(TokenType.tok_debug)
-            expr = self.E(0)
-            if not LEX.match(TokenType.tok_point_virgule):
-                LEX.erreur("';' attendu")
-                return None
-            return self.node_1_enfant(NodeTypes.node_debug, expr)
+            N = self.E(0)
+            LEX.accept(TokenType.tok_point_virgule)
+            return self.node_1_enfant(NodeTypes.node_debug, "debug", N)
         elif LEX.check(TokenType.tok_accolade_ouvrante):
-            LEX.accept(TokenType.tok_accolade_ouvrante)
-            instructions = []
-            while not LEX.check(TokenType.tok_accolade_fermeante):
-                instructions.append(self.I())
-            LEX.accept(TokenType.tok_accolade_fermeante)
-            return self.node_1_enfant(NodeTypes.node_block, instructions)
+            LEX.accept(TokenType.tok_accolade_ouvrante)  # Consommer l'accolade ouvrante
+            N = Node(NodeTypes.node_block, 0, "")
+            enfants = []
+            while not LEX.check(TokenType.tok_accolade_fermeante) and LEX.T and LEX.T.type != TokenType.tok_eof:
+                child = self.I()
+                if child is None:
+                    break
+                enfants.append(child)
+            LEX.accept(TokenType.tok_accolade_fermeante)  # Consommer l'accolade fermante
+            return self.node_block_node(enfants)
         else:
-            expr = self.E(0)
-            if not LEX.match(TokenType.tok_point_virgule):
-                LEX.erreur("';' attendu")
-                return None
-            return self.node_1_enfant(NodeTypes.node_stmt_expr, expr)
+            N = self.E(0)
+            LEX.accept(TokenType.tok_point_virgule)
+            return self.node_1_enfant(NodeTypes.node_drop, "drop", N)
+
+   
+        
