@@ -1,4 +1,8 @@
-int main() {
-    int x = 42;
-    return x;
-}
+{ int x;
+    x = 3;
+    { x=2;
+    int x;
+    x = 5;
+    }
+    x = 7;
+    }

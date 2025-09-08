@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from enum import Enum
 
 class NodeTypes(Enum):
@@ -21,10 +20,18 @@ class NodeTypes(Enum):
     # logiques
     node_et = 24
     node_ou = 25
+
+    # instructions / variables
     node_block = 26
     node_debug = 27
-    node_stmt_expr = 28
+    node_stmt_expr = 28   # (conservé si utile)
     node_drop = 29
+    node_var = 30         # (réservé)
+    node_declare = 31     # decl name;
+    node_reference = 32   # ref name
+    node_affect = 33      # ref = expr
+
+
 
 class Node:
     def __init__(self, type, valeur=0, chaine="", enfants=None):
