@@ -115,7 +115,26 @@ class AnalyseurSyntaxique:
             LEX.accept(TokenType.tok_point_virgule)
             # nd_decl(name)
             return self.node_valeur(NodeTypes.node_declare, 0, name_tok.chaine)
+        # I <- ... | if(E) I(else I)?
+        if LEX.check(TokenType.tok_if):
+            LEX.accept(TokenType.tok_if)
+            LEX.accept(TokenType.tok_parenthese_ouvrante)
+            cond = self.E(0)
+            LEX.accept(TokenType.tok_parenthese_fermeante)
 
+            then_branch = self.I()
+
+            else_branch = None
+            if LEX.check(TokenType.tok_else):
+                LEX.accept(TokenType.tok_else)
+                else_branch = self.I()
+
+            n = Node(NodeTypes.node_if)            # = "condi" dans tes notes
+            n.ajouter_enfant(cond)                 # enfants[0] = E (test)
+            n.ajouter_enfant(then_branch)          # enfants[1] = I1 (cas vrai)
+            if else_branch is not None:
+                n.ajouter_enfant(else_branch)      # enfants[2] = I2 (cas faux, optionnel)
+            return n
         # par défaut : E ; (instruction expression → drop)
         N = self.E(0)
         LEX.accept(TokenType.tok_point_virgule)

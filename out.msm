@@ -1,20 +1,36 @@
 .start
-resn 2
+resn 1
 push 3
 dup
 set 0
 drop 1
-push 2
-dup
-set 0
-drop 1
+get 0
 push 5
-dup
-set 1
-drop 1
-push 7
+cmplt
+jumpf L1
+get 0
+push 3
+cmpeq
+jumpf L3
+push 10
 dup
 set 0
 drop 1
-drop 2
+jump L4
+.L3
+push 20
+dup
+set 0
+drop 1
+.L4
+jump L2
+.L1
+push 30
+dup
+set 0
+drop 1
+.L2
+get 0
+dbg
+drop 1
 halt

@@ -30,6 +30,7 @@ class NodeTypes(Enum):
     node_declare = 31     # decl name;
     node_reference = 32   # ref name
     node_affect = 33      # ref = expr
+    node_if = 34          # if(E) I(else I)?
 
 
 

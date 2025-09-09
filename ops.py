@@ -2,6 +2,38 @@
 from AnalyseurLexicale import TokenType
 from ast_nodes import NodeTypes, Node
 
+NB_LABEL = 0
+
+def NF_if(n: Node):
+    # enfants: [E, I1, (I2?)]
+    cond = n.enfants[0]
+    then_branch = n.enfants[1]
+    has_else = len(n.enfants) >= 3
+
+    else_lbl = next_label()
+    end_lbl  = next_label() if has_else else else_lbl
+
+    code = []
+    # E
+    code += GenNode(cond)
+    code += [f"jumpf {else_lbl}"]
+    # I1 (cas vrai)
+    code += GenNode(then_branch)
+    if has_else:
+        code += [f"jump {end_lbl}"]
+        code += [f".{else_lbl}"]
+        # I2 (cas faux)
+        code += GenNode(n.enfants[2])
+        code += [f".{end_lbl}"]
+    else:
+        code += [f".{else_lbl}"]
+    return code
+
+def next_label():
+    global NB_LABEL
+    NB_LABEL += 1
+    return f"L{NB_LABEL}"
+
 # ---------------------------
 # Priorités (cours) 6..1
 # ---------------------------
@@ -73,6 +105,9 @@ NF = {
     NodeTypes.node_affect:         lambda n: (
         GenNode(n.enfants[1]) + ["dup", f"set {n.enfants[0].valeur}"]
     ),
+    
+    # if(E) I(else I)? 
+    NodeTypes.node_if: NF_if
 }
 
 # ---------------------------
