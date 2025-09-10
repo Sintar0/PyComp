@@ -91,7 +91,7 @@ def pipeline(filepath):
     gencode(arbre)
 
 if __name__ == "__main__":
-    fichier = "test.c"
+    fichier = "test_while.c"
     if DEBUG_LEXER:
         debug_lexer(fichier)
     else:

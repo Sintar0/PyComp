@@ -1,35 +1,22 @@
 .start
 resn 1
-push 3
+push 0
 dup
 set 0
 drop 1
+.LOOP_START_1
 get 0
-push 5
+push 3
 cmplt
-jumpf L1
+jumpf LOOP_END_1
 get 0
-push 3
-cmpeq
-jumpf L3
-push 10
+push 1
+add
 dup
 set 0
 drop 1
-jump L4
-.L3
-push 20
-dup
-set 0
-drop 1
-.L4
-jump L2
-.L1
-push 30
-dup
-set 0
-drop 1
-.L2
+jump LOOP_START_1
+.LOOP_END_1
 get 0
 dbg
 drop 1

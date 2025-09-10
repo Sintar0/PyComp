@@ -3,6 +3,38 @@ from AnalyseurLexicale import TokenType
 from ast_nodes import NodeTypes, Node
 
 NB_LABEL = 0
+NB_LOOP = 0
+
+
+def NF_loop(n: Node):
+    global NB_LOOP
+    NB_LOOP += 1
+    loop_id = NB_LOOP
+
+    # enfants: [target, cond_node]
+    target = n.enfants[0]  # node_target (vide)
+    cond_node = n.enfants[1]  # node_cond
+    E1 = cond_node.enfants[0]  # condition
+    I1 = cond_node.enfants[1]  # corps
+    # break_node = cond_node.enfants[2]  # break (utilisé par NF_break)
+
+    start_lbl = f"LOOP_START_{loop_id}"
+    end_lbl = f"LOOP_END_{loop_id}"
+
+    code = []
+    code += [f".{start_lbl}"]
+    # E1 (condition)
+    code += GenNode(E1)
+    code += [f"jumpf {end_lbl}"]
+    # I1 (corps de la boucle)
+    code += GenNode(I1)
+    code += [f"jump {start_lbl}"]
+    code += [f".{end_lbl}"]
+    return code
+
+def NF_break(n: Node):
+    # n est un node_break (sans enfant)
+    return [f"jump LOOP_END_{NB_LOOP}"]
 
 def NF_cond(n: Node):
     # enfants: [E, I1, (I2?)]
@@ -107,7 +139,10 @@ NF = {
     ),
     
     # if(E) I(else I)? 
-    NodeTypes.node_cond: NF_cond
+    NodeTypes.node_cond: NF_cond    ,
+    NodeTypes.node_loop: NF_loop    ,
+    NodeTypes.node_break: NF_break  ,
+
 }
 
 # ---------------------------

@@ -139,18 +139,14 @@ class AnalyseurSyntaxique:
         if LEX.check(TokenType.tok_while):
             LEX.accept(TokenType.tok_while)
             LEX.accept(TokenType.tok_parenthese_ouvrante)
-            cond_expr = self.E(0)
+            E1 = self.E(0)  # condition
             LEX.accept(TokenType.tok_parenthese_fermeante)
-            E1 = self.I()  # corps de la boucle
-            I1 = self.I()  # instruction suivante (optionnelle)
-            # Création du nœud break
+            I1 = self.I()   # corps de la boucle
             break_node = Node(NodeTypes.node_break)
-            # Création du nœud cond avec 3 enfants : cond_expr, E1, break_node
             cond_node = Node(NodeTypes.node_cond)
-            cond_node.ajouter_enfant(cond_expr)
             cond_node.ajouter_enfant(E1)
+            cond_node.ajouter_enfant(I1)
             cond_node.ajouter_enfant(break_node)
-            # Création du nœud loop avec target et cond_node
             target_node = Node(NodeTypes.node_target)
             loop_node = Node(NodeTypes.node_loop)
             loop_node.ajouter_enfant(target_node)
