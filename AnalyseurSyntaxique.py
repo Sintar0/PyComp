@@ -129,16 +129,40 @@ class AnalyseurSyntaxique:
                 LEX.accept(TokenType.tok_else)
                 else_branch = self.I()
 
-            n = Node(NodeTypes.node_if)            # = "condi" dans tes notes
+            n = Node(NodeTypes.node_cond)            # = "condi" dans tes notes
             n.ajouter_enfant(cond)                 # enfants[0] = E (test)
             n.ajouter_enfant(then_branch)          # enfants[1] = I1 (cas vrai)
             if else_branch is not None:
                 n.ajouter_enfant(else_branch)      # enfants[2] = I2 (cas faux, optionnel)
             return n
+        
+        if LEX.check(TokenType.tok_while):
+            LEX.accept(TokenType.tok_while)
+            LEX.accept(TokenType.tok_parenthese_ouvrante)
+            cond_expr = self.E(0)
+            LEX.accept(TokenType.tok_parenthese_fermeante)
+            E1 = self.I()  # corps de la boucle
+            I1 = self.I()  # instruction suivante (optionnelle)
+            # Création du nœud break
+            break_node = Node(NodeTypes.node_break)
+            # Création du nœud cond avec 3 enfants : cond_expr, E1, break_node
+            cond_node = Node(NodeTypes.node_cond)
+            cond_node.ajouter_enfant(cond_expr)
+            cond_node.ajouter_enfant(E1)
+            cond_node.ajouter_enfant(break_node)
+            # Création du nœud loop avec target et cond_node
+            target_node = Node(NodeTypes.node_target)
+            loop_node = Node(NodeTypes.node_loop)
+            loop_node.ajouter_enfant(target_node)
+            loop_node.ajouter_enfant(cond_node)
+            return loop_node
         # par défaut : E ; (instruction expression → drop)
         N = self.E(0)
         LEX.accept(TokenType.tok_point_virgule)
         return self.node_1_enfant(NodeTypes.node_drop, N)
+
+    
+
 
     # Programme : séquence d’instructions jusqu’à EOF, empaquetée dans un block racine
     def Programme(self):

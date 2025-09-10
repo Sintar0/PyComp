@@ -4,7 +4,7 @@ from ast_nodes import NodeTypes, Node
 
 NB_LABEL = 0
 
-def NF_if(n: Node):
+def NF_cond(n: Node):
     # enfants: [E, I1, (I2?)]
     cond = n.enfants[0]
     then_branch = n.enfants[1]
@@ -107,7 +107,7 @@ NF = {
     ),
     
     # if(E) I(else I)? 
-    NodeTypes.node_if: NF_if
+    NodeTypes.node_cond: NF_cond
 }
 
 # ---------------------------
