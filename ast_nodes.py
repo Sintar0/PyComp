@@ -30,11 +30,13 @@ class NodeTypes(Enum):
     node_declare = 31     # decl name;
     node_reference = 32   # ref name
     node_affect = 33      # ref = expr
+    # structures de contrôle
     node_cond = 34         # if(E) I(else I)?
     node_loop = 35        # while(E)I|break|continue
     node_target = 36    
     node_break = 37
-    node_continue = 38  
+    node_continue = 38
+    node_sequence = 39   
 
 
 

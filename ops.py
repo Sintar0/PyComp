@@ -16,7 +16,6 @@ def NF_loop(n: Node):
     cond_node = n.enfants[1]  # node_cond
     E1 = cond_node.enfants[0]  # condition
     I1 = cond_node.enfants[1]  # corps
-    # break_node = cond_node.enfants[2]  # break (utilisé par NF_break)
 
     start_lbl = f"LOOP_START_{loop_id}"
     end_lbl = f"LOOP_END_{loop_id}"
@@ -33,7 +32,6 @@ def NF_loop(n: Node):
     return code
 
 def NF_break(n: Node):
-    # n est un node_break (sans enfant)
     return [f"jump LOOP_END_{NB_LOOP}"]
 
 def NF_cond(n: Node):
@@ -142,7 +140,9 @@ NF = {
     NodeTypes.node_cond: NF_cond    ,
     NodeTypes.node_loop: NF_loop    ,
     NodeTypes.node_break: NF_break  ,
-
+    NodeTypes.node_break: NF_break  ,
+    NodeTypes.node_continue: lambda n: [f"jump LOOP_START_{NB_LOOP}"],
+    NodeTypes.node_target:   lambda n: [],  # <--- Corrigé : ne déclare plus le label ici
 }
 
 # ---------------------------

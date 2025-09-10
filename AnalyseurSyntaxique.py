@@ -135,7 +135,7 @@ class AnalyseurSyntaxique:
             if else_branch is not None:
                 n.ajouter_enfant(else_branch)      # enfants[2] = I2 (cas faux, optionnel)
             return n
-        
+       # while(E) I 
         if LEX.check(TokenType.tok_while):
             LEX.accept(TokenType.tok_while)
             LEX.accept(TokenType.tok_parenthese_ouvrante)
@@ -152,6 +152,61 @@ class AnalyseurSyntaxique:
             loop_node.ajouter_enfant(target_node)
             loop_node.ajouter_enfant(cond_node)
             return loop_node
+        # for (E1; E2; E3) I
+        if LEX.check(TokenType.tok_for):
+            LEX.accept(TokenType.tok_for)
+            LEX.accept(TokenType.tok_parenthese_ouvrante)
+            E1 = self.E(0)
+            LEX.accept(TokenType.tok_point_virgule)
+            E2 = self.E(0)
+            LEX.accept(TokenType.tok_point_virgule)
+            E3 = self.E(0)
+            LEX.accept(TokenType.tok_parenthese_fermeante)
+            I1 = self.I()
+
+            # Construction de l'arbre
+            node_drop_E1 = Node(NodeTypes.node_drop)
+            node_drop_E1.ajouter_enfant(E1)
+
+            node_drop_E3 = Node(NodeTypes.node_drop)
+            node_drop_E3.ajouter_enfant(E3)
+
+            node_target = Node(NodeTypes.node_target)
+
+            seq_in_loop = Node(NodeTypes.node_sequence)
+            seq_in_loop.ajouter_enfant(I1)
+            seq_in_loop.ajouter_enfant(node_target)
+            seq_in_loop.ajouter_enfant(node_drop_E3)
+
+            node_break = Node(NodeTypes.node_break)
+
+            node_cond = Node(NodeTypes.node_cond)
+            node_cond.ajouter_enfant(E2)
+            node_cond.ajouter_enfant(seq_in_loop)
+            node_cond.ajouter_enfant(node_break)
+
+            node_loop = Node(NodeTypes.node_loop)
+            node_loop.ajouter_enfant(node_target)  # ou None si pas utilisé
+            node_loop.ajouter_enfant(node_cond)
+
+            node_seq = Node(NodeTypes.node_sequence)
+            node_seq.ajouter_enfant(node_drop_E1)
+            node_seq.ajouter_enfant(node_loop)
+
+            return node_seq
+
+        # continue ;
+        if LEX.check(TokenType.tok_continue):
+            LEX.accept(TokenType.tok_continue)
+            LEX.accept(TokenType.tok_point_virgule)
+            return Node(NodeTypes.node_continue)
+
+        # break ;
+        if LEX.check(TokenType.tok_break):
+            LEX.accept(TokenType.tok_break)
+            LEX.accept(TokenType.tok_point_virgule)
+            return Node(NodeTypes.node_break)
+
         # par défaut : E ; (instruction expression → drop)
         N = self.E(0)
         LEX.accept(TokenType.tok_point_virgule)

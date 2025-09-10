@@ -1,13 +1,5 @@
-int x;
-x = 3;
-
-if (x < 5) {
-    if (x == 3)
-        x = 10;
-    else
-        x = 20;
-} else {
-    x = 30;
+int i;
+i = 0;
+for(i; i < 10; i = i + 1) {
+debug i;
 }
-
-debug x;

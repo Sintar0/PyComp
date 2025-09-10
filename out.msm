@@ -4,11 +4,15 @@ push 0
 dup
 set 0
 drop 1
+get 0
+drop 1
 .LOOP_START_1
 get 0
-push 3
+push 10
 cmplt
 jumpf LOOP_END_1
+get 0
+dbg
 get 0
 push 1
 add
@@ -17,7 +21,5 @@ set 0
 drop 1
 jump LOOP_START_1
 .LOOP_END_1
-get 0
-dbg
 drop 1
 halt
