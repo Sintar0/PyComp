@@ -1,5 +1,6 @@
-int i;
-i = 0;
-for(i; i < 10; i = i + 1) {
-debug i;
-}
+int x;
+x = 0;
+do {
+    x = x + 1;
+    debug x;
+} while (x < 3);

@@ -152,6 +152,39 @@ class AnalyseurSyntaxique:
             loop_node.ajouter_enfant(target_node)
             loop_node.ajouter_enfant(cond_node)
             return loop_node
+
+            # do I while (E) ;
+        if LEX.check(TokenType.tok_do):
+            LEX.accept(TokenType.tok_do)
+            I1 = self.I()   # corps de la boucle
+            LEX.accept(TokenType.tok_while)
+            LEX.accept(TokenType.tok_parenthese_ouvrante)
+            E1 = self.E(0)  # condition
+            LEX.accept(TokenType.tok_parenthese_fermeante)
+            LEX.accept(TokenType.tok_point_virgule)
+
+            node_target = Node(NodeTypes.node_target)
+
+            seq_in_loop = Node(NodeTypes.node_sequence)
+            seq_in_loop.ajouter_enfant(I1)
+            seq_in_loop.ajouter_enfant(node_target)
+
+            node_break = Node(NodeTypes.node_break)
+
+            node_cond = Node(NodeTypes.node_cond)
+            node_cond.ajouter_enfant(E1)
+            node_cond.ajouter_enfant(seq_in_loop)
+            node_cond.ajouter_enfant(node_break)
+
+            node_loop = Node(NodeTypes.node_loop)
+            node_loop.ajouter_enfant(node_target)  # ou None si pas utilisé
+            node_loop.ajouter_enfant(node_cond)
+
+            return node_loop
+        
+        
+   
+        
         # for (E1; E2; E3) I
         if LEX.check(TokenType.tok_for):
             LEX.accept(TokenType.tok_for)
@@ -206,7 +239,6 @@ class AnalyseurSyntaxique:
             LEX.accept(TokenType.tok_break)
             LEX.accept(TokenType.tok_point_virgule)
             return Node(NodeTypes.node_break)
-
         # par défaut : E ; (instruction expression → drop)
         N = self.E(0)
         LEX.accept(TokenType.tok_point_virgule)

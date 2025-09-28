@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+import sys
+sys.stdout.reconfigure(encoding='utf-8')# -*- coding: utf-8 -*-
 from AnalyseurSyntaxique import AnalyseurSyntaxique
 import AnalyseurLexicale as LEX
 from ops import GenNode           # GenNode doit gérer block/debug/drop/decl/ref/affect + expr
