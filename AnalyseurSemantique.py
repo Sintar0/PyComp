@@ -61,6 +61,42 @@ def SemNode(N):
         N.valeur = sym["index"]
         return
 
+    # nd_call (fonction)
+    if t == NodeTypes.node_call:
+        # vérifier que le nom de la fonction est bien déclaré
+        if len(N.enfants) < 1:
+            raise SemError("Appel de fonction mal formé")
+        func_name_node = N.enfants[0]
+        if func_name_node.type != NodeTypes.node_reference:
+            raise SemError("Le nom de la fonction doit être une référence")
+        find(func_name_node.chaine)  # Vérifie que la fonction est déclarée
+        # Traiter les arguments
+        for arg in N.enfants[1:]:
+            SemNode(arg)
+        return
+    if t == NodeTypes.node_function:
+        if len(N.enfants) < 2:
+            raise SemError("Définition de fonction mal formée")
+        func_name_node = N.enfants[0]
+        if func_name_node.type != NodeTypes.node_reference:
+            raise SemError("Le nom de la fonction doit être une référence")
+        declare(func_name_node.chaine)  # Déclare la fonction
+        beginBlock()  # Nouveau scope pour les paramètres et le corps
+        # Traiter les paramètres
+        for param in N.enfants[1:-1]:
+            if param.type != NodeTypes.node_declare:
+                raise SemError("Les paramètres doivent être des déclarations")
+            SemNode(param)
+        # Traiter le corps de la fonction
+        SemNode(N.enfants[-1])
+        endBlock()
+        return
+
+    # autres : descente simple
+    for c in N.enfants:
+        SemNode(c)
+
+
     # nd_affect(ref, expr) : check que gauche=ref, sémantique des enfants
     if t == NodeTypes.node_affect:
         if len(N.enfants) < 2:

@@ -84,6 +84,41 @@ class AnalyseurSyntaxique:
         else:
             LEX.erreur(f"Atome attendu, trouvé: {(LEX.T.type.name if LEX.T else 'None')}")
             return None
+    # F → int ident ( (int ident (, int ident)*)? ) I
+    def F(self):
+        # int
+        LEX.accept(TokenType.tok_int)  
+        LEX.accept(TokenType.tok_ident)
+        LAST = LEX.T
+        if not LEX.accept(TokenType.tok_parenthese_ouvrante):
+            LEX.erreur("'(' attendu après le nom de la fonction")
+            return None
+
+        params = []
+        # (int ident (, int ident)* )?
+        if not LEX.check(TokenType.tok_parenthese_fermeante):
+            while True:
+                if not LEX.accept(TokenType.tok_int):
+                    LEX.erreur("'int' attendu dans la liste des paramètres")
+                    return None
+                if not LEX.check(TokenType.tok_ident):
+                    LEX.erreur("Nom de paramètre attendu après 'int'")
+                    return None
+                param_tok = LEX.T
+                LEX.accept(TokenType.tok_ident)
+                params.append(self.node_valeur(NodeTypes.node_declare, 0, param_tok.chaine))
+                if not LEX.check(TokenType.tok_virgule):
+                    break
+                LEX.accept(TokenType.tok_virgule)
+        # )
+        if not LEX.accept(TokenType.tok_parenthese_fermeante):
+            LEX.erreur("')' attendu à la fin de la liste des paramètres")
+            return None
+
+        # corps de la fonction
+        body = self.I()
+
+   
 
     # --- grammaire des instructions (cours 4/5) ---
     # I → debug E ; | { I* } | int ident ; | E ;
