@@ -75,23 +75,35 @@ def SemNode(N):
             SemNode(arg)
         return
     if t == NodeTypes.node_function:
+        '''
+        Declare(Noeud.ident);
+        nbvar = 0
+        beginBlock()
+        'boucle sur les enfants'
+        endBlock();
+        N.nbvar = nbvar - (N.nbenfants -1)
+        '''
+
         if len(N.enfants) < 2:
-            raise SemError("Définition de fonction mal formée")
+            raise SemError("Déclaration de fonction mal formée")
         func_name_node = N.enfants[0]
         if func_name_node.type != NodeTypes.node_reference:
             raise SemError("Le nom de la fonction doit être une référence")
-        declare(func_name_node.chaine)  # Déclare la fonction
-        beginBlock()  # Nouveau scope pour les paramètres et le corps
-        # Traiter les paramètres
-        for param in N.enfants[1:-1]:
-            if param.type != NodeTypes.node_declare:
-                raise SemError("Les paramètres doivent être des déclarations")
-            SemNode(param)
-        # Traiter le corps de la fonction
-        SemNode(N.enfants[-1])
+        find(func_name_node.chaine)  # Vérifie que la fonction est déclarée
+        nbvar = 0 # compteur local de variables
+        beginBlock()
+        for param in N.enfants[1:-1]:  # Tous les enfants sauf le dernier (le corps)
+            if param.type != NodeTypes.node_reference:
+                raise SemError("Les paramètres de la fonction doivent être des références")
+            sym = declare(param.chaine)
+            sym["index"] = nbvar
+          
+        body = N.enfants[-1]
+        SemNode(body)
         endBlock()
-        return
+        N.nbvar = NBvar - (len(N.enfants) -1)
 
+        return
     # autres : descente simple
     for c in N.enfants:
         SemNode(c)

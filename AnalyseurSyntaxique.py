@@ -59,7 +59,28 @@ class AnalyseurSyntaxique:
             return self.S()
 
     def S(self):
-        return self.A()
+        N = self.A()
+        if LEX.T and LEX.T.type == TokenType.tok_parenthese_ouvrante:
+            LEX.match(TokenType.tok_parenthese_ouvrante)
+            args = []
+            if LEX.T and LEX.T.type != TokenType.tok_parenthese_fermeante:
+                while True:
+                    arg = self.E(0)
+                    args.append(arg)
+                    if LEX.T and LEX.T.type == TokenType.tok_virgule:
+                        LEX.match(TokenType.tok_virgule)
+                    else:
+                        break
+            if not LEX.match(TokenType.tok_parenthese_fermeante):
+                LEX.erreur("')' attendu")
+                return None
+            # nd_call (fonction, args...)
+            call_node = Node(NodeTypes.node_call)
+            call_node.ajouter_enfant(N)  # fonction
+            for a in args:
+                call_node.ajouter_enfant(a)  # arguments
+            return call_node
+        return N
 
     def A(self):
         if LEX.check(TokenType.tok_const):
@@ -84,41 +105,54 @@ class AnalyseurSyntaxique:
         else:
             LEX.erreur(f"Atome attendu, trouvé: {(LEX.T.type.name if LEX.T else 'None')}")
             return None
+        
     # F → int ident ( (int ident (, int ident)*)? ) I
     def F(self):
-        # int
-        LEX.accept(TokenType.tok_int)  
-        LEX.accept(TokenType.tok_ident)
-        LAST = LEX.T
-        if not LEX.accept(TokenType.tok_parenthese_ouvrante):
-            LEX.erreur("'(' attendu après le nom de la fonction")
+        
+        '''
+        accept(tok_int);
+        accept(tok_ident);
+        LAST = tok_ident
+        accept(tok_parenthese_ouvrant);
+        if(!check(tok_parenthese_ouvrant)){
+        do{accept(tok_int);
+        accept(tok_ident);
+        }
+        while(check(tok_virgule))
+        accept(tok_parentèse_fermante)
+        }
+        I();
+        '''
+        LEX.accept(TokenType.tok_int)
+        if not LEX.check(TokenType.tok_ident):
+            LEX.erreur("identifiant attendu après 'int'")
             return None
-
+        LAST = LEX.T
+        LEX.accept(TokenType.tok_ident)
+        LEX.accept(TokenType.tok_parenthese_ouvrante)
         params = []
-        # (int ident (, int ident)* )?
         if not LEX.check(TokenType.tok_parenthese_fermeante):
             while True:
-                if not LEX.accept(TokenType.tok_int):
-                    LEX.erreur("'int' attendu dans la liste des paramètres")
-                    return None
+                LEX.accept(TokenType.tok_int)
                 if not LEX.check(TokenType.tok_ident):
-                    LEX.erreur("Nom de paramètre attendu après 'int'")
+                    LEX.erreur("identifiant attendu après 'int'")
                     return None
                 param_tok = LEX.T
+                params.append(param_tok.chaine)
                 LEX.accept(TokenType.tok_ident)
-                params.append(self.node_valeur(NodeTypes.node_declare, 0, param_tok.chaine))
-                if not LEX.check(TokenType.tok_virgule):
+                if LEX.check(TokenType.tok_virgule):
+                    LEX.accept(TokenType.tok_virgule)
+                else:
                     break
-                LEX.accept(TokenType.tok_virgule)
-        # )
-        if not LEX.accept(TokenType.tok_parenthese_fermeante):
-            LEX.erreur("')' attendu à la fin de la liste des paramètres")
-            return None
-
-        # corps de la fonction
+        LEX.accept(TokenType.tok_parenthese_fermeante)
         body = self.I()
-
-   
+        func_node = Node(NodeTypes.node_fonction)
+        func_node.ajouter_enfant(self.node_valeur(NodeTypes.node_reference, 0, LAST.chaine))  # nom de la fonction
+        for p in params:
+            func_node.ajouter_enfant(self.node_valeur(NodeTypes.node_reference, 0, p))  # paramètres
+        func_node.ajouter_enfant(body)  # corps de la fonction
+        return func_node
+    
 
     # --- grammaire des instructions (cours 4/5) ---
     # I → debug E ; | { I* } | int ident ; | E ;
@@ -274,6 +308,13 @@ class AnalyseurSyntaxique:
             LEX.accept(TokenType.tok_break)
             LEX.accept(TokenType.tok_point_virgule)
             return Node(NodeTypes.node_break)
+        # I <- ... |return E ;
+        if LEX.check(TokenType.tok_return):
+            LEX.accept(TokenType.tok_return)
+            N = self.E(0)
+            LEX.accept(TokenType.tok_point_virgule)
+            return self.node_1_enfant(NodeTypes.node_return, N)
+        
         # par défaut : E ; (instruction expression → drop)
         N = self.E(0)
         LEX.accept(TokenType.tok_point_virgule)
@@ -283,8 +324,30 @@ class AnalyseurSyntaxique:
 
 
     # Programme : séquence d’instructions jusqu’à EOF, empaquetée dans un block racine
+    # #je dois rajouter ça je sais pas comment faire
+    #    debut Block
+    #   tant qu'on est différent de EOF niveau token
+    #   genCode()
+    #   fin Block
+    #   print("ident")
     def Programme(self):
-        instrs = []
+        enfants = []
         while LEX.T and LEX.T.type != TokenType.tok_eof:
-            instrs.append(self.I())
-        return self.node_block(instrs)
+            if LEX.check(TokenType.tok_int):
+                # Déclaration de fonction
+                func_node = self.F()
+                if func_node is not None:
+                    enfants.append(func_node)
+            else:
+                instr = self.I()
+                if instr is not None:
+                    enfants.append(instr)
+        return self.node_block(enfants)
+    
+    
+       
+        
+
+
+
+        

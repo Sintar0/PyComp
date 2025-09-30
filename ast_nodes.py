@@ -37,6 +37,10 @@ class NodeTypes(Enum):
     node_break = 37
     node_continue = 38
     node_sequence = 39   
+    node_fonction = 40   # function ref(params) block
+    node_call = 41       # ref(args)
+    node_return = 42     # return expr
+    
 
 
 

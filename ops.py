@@ -5,6 +5,50 @@ from ast_nodes import NodeTypes, Node
 NB_LABEL = 0
 NB_LOOP = 0
 
+def NF_appelF(nom: str):
+    '''
+    prep enfant[0].ident
+    {Boucle :Appel récusif sur les Enfants E − 1}
+    call nbenfant-1
+    ret
+
+    '''
+    func_name_node = nom.enfants[0]
+    nb_args = len(nom.enfants) - 1  # exclut le nom de la fonction
+    func_label = func_name_node.chaine
+    code = []
+    code += [f"prep {func_label}"]
+    for arg in nom.enfants[1:]:
+        code += GenNode(arg)
+    code += [f"call {nb_args}"]
+    return code
+
+
+
+def NF_fonction(n: Node):
+    '''
+    fonction ; label idente + nbvars
+    resn [nb vars]
+    I
+    push 0
+    ret
+
+    '''
+    func_name_node = n.enfants[0]
+    body_node = n.enfants[-1]
+    nb_params = len(n.enfants) - 2  # exclut le nom et le corps
+    nb_vars = getattr(n, "nbvar", 0)  # Récupère le nombre de variables locales annoté par l'analyseur sémantique
+
+    func_label = func_name_node.chaine
+    code = []
+    code += [f".{func_label}"]
+    code += [f"resn {nb_params + nb_vars}"]
+    code += GenNode(body_node)
+    code += ["push 0", "ret"]
+    return code
+
+
+
 
 def NF_loop(n: Node):
     global NB_LOOP
@@ -130,6 +174,8 @@ NF = {
     NodeTypes.node_debug:          lambda n: GenNode(n.enfants[0]) + ["dbg"],
     NodeTypes.node_drop:           lambda n: GenNode(n.enfants[0]) + ["drop 1"],
     NodeTypes.node_declare:        lambda n: [],  # alloc gérée globalement (resn/drop)
+    NodeTypes.node_return:        lambda n: GenNode(n.enfants[0]) + ["ret"],
+
 
     # affect: lhs=ref(name/index), rhs=expr
     NodeTypes.node_affect:         lambda n: (
@@ -143,7 +189,14 @@ NF = {
     NodeTypes.node_break: NF_break  ,
     NodeTypes.node_continue: lambda n: [f"jump LOOP_START_{NB_LOOP}"],
     NodeTypes.node_target:   lambda n: [],  # <--- Corrigé : ne déclare plus le label ici
+
+    #fonction et appel
+    NodeTypes.node_fonction: NF_fonction,
+
+
 }
+
+
 
 # ---------------------------
 # Générateur unique
