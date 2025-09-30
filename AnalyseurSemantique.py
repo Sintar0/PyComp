@@ -74,7 +74,7 @@ def SemNode(N):
         for arg in N.enfants[1:]:
             SemNode(arg)
         return
-    if t == NodeTypes.node_function:
+    if t == NodeTypes.node_fonction:
         '''
         Declare(Noeud.ident);
         nbvar = 0
