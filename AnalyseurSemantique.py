@@ -16,13 +16,13 @@ def endBlock():
         raise SemError("endBlock() sans beginBlock()")
     _TS_STACK.pop()
 
-def declare(name: str):
+def declare(name: str, type="var"):
     if not _TS_STACK:
         beginBlock()
     cur = _TS_STACK[-1]
     if name in cur:
         raise SemError(f"Double déclaration dans le même bloc: '{name}'")
-    sym = {"name": name, "index": None}
+    sym = {"name": name, "index": None, "type": type}
     cur[name] = sym
     return sym
 
@@ -69,40 +69,32 @@ def SemNode(N):
         func_name_node = N.enfants[0]
         if func_name_node.type != NodeTypes.node_reference:
             raise SemError("Le nom de la fonction doit être une référence")
-        find(func_name_node.chaine)  # Vérifie que la fonction est déclarée
+        sym = find(func_name_node.chaine)
+        if sym["type"] != "fonction":
+            raise SemError(f"'{func_name_node.chaine}' n'est pas une fonction")
         # Traiter les arguments
         for arg in N.enfants[1:]:
             SemNode(arg)
         return
     if t == NodeTypes.node_fonction:
-        '''
-        Declare(Noeud.ident);
-        nbvar = 0
-        beginBlock()
-        'boucle sur les enfants'
-        endBlock();
-        N.nbvar = nbvar - (N.nbenfants -1)
-        '''
-
         if len(N.enfants) < 2:
             raise SemError("Déclaration de fonction mal formée")
         func_name_node = N.enfants[0]
         if func_name_node.type != NodeTypes.node_reference:
             raise SemError("Le nom de la fonction doit être une référence")
-        find(func_name_node.chaine)  # Vérifie que la fonction est déclarée
-        nbvar = 0 # compteur local de variables
+        declare(func_name_node.chaine, "fonction")
+        saved_nbvar = NBvar
         beginBlock()
-        for param in N.enfants[1:-1]:  # Tous les enfants sauf le dernier (le corps)
+        for param in N.enfants[1:-1]:  # paramètres
             if param.type != NodeTypes.node_reference:
                 raise SemError("Les paramètres de la fonction doivent être des références")
-            sym = declare(param.chaine)
-            sym["index"] = nbvar
-          
+            sym = declare(param.chaine, "var")
+            sym["index"] = NBvar
+            NBvar += 1
         body = N.enfants[-1]
         SemNode(body)
         endBlock()
-        N.nbvar = NBvar - (len(N.enfants) -1)
-
+        N.nbvar = NBvar - saved_nbvar
         return
     # autres : descente simple
     for c in N.enfants:

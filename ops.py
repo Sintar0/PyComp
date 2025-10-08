@@ -5,20 +5,12 @@ from ast_nodes import NodeTypes, Node
 NB_LABEL = 0
 NB_LOOP = 0
 
-def NF_appelF(nom: str):
-    '''
-    prep enfant[0].ident
-    {Boucle :Appel récusif sur les Enfants E − 1}
-    call nbenfant-1
-    ret
-
-    '''
-    func_name_node = nom.enfants[0]
-    nb_args = len(nom.enfants) - 1  # exclut le nom de la fonction
+def NF_call(n: Node):
+    func_name_node = n.enfants[0]
+    nb_args = len(n.enfants) - 1
     func_label = func_name_node.chaine
-    code = []
-    code += [f"prep {func_label}"]
-    for arg in nom.enfants[1:]:
+    code = [f"prep {func_label}"]
+    for arg in n.enfants[1:]:
         code += GenNode(arg)
     code += [f"call {nb_args}"]
     return code
@@ -44,7 +36,6 @@ def NF_fonction(n: Node):
     code += [f".{func_label}"]
     code += [f"resn {nb_params + nb_vars}"]
     code += GenNode(body_node)
-    code += ["push 0", "ret"]
     return code
 
 
@@ -186,12 +177,12 @@ NF = {
     NodeTypes.node_cond: NF_cond    ,
     NodeTypes.node_loop: NF_loop    ,
     NodeTypes.node_break: NF_break  ,
-    NodeTypes.node_break: NF_break  ,
     NodeTypes.node_continue: lambda n: [f"jump LOOP_START_{NB_LOOP}"],
     NodeTypes.node_target:   lambda n: [],  # <--- Corrigé : ne déclare plus le label ici
 
     #fonction et appel
     NodeTypes.node_fonction: NF_fonction,
+    NodeTypes.node_call: NF_call,
 
 
 }

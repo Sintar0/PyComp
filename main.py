@@ -55,15 +55,15 @@ def analyse_semantique(arbre):
     SEM.SemNode(arbre)           # annote les indices, remplit NBvar
     print(f"[INFO] NBvar={SEM.NBvar}")
     return arbre
-
 def optimisation(arbre):
     print("=== Optimisation (bidon) ===")
     return arbre
 
 def gencode(arbre):
     print("=== Génération de code (postfixe) ===")
-    # Préambule + corps + épilogue, comme dans le cours 5
-    instructions = [f"resn {SEM.NBvar}"] + GenNode(arbre) + [f"drop {SEM.NBvar}"]
+    instructions = []
+    for child in arbre.enfants:
+        instructions += GenNode(child)
     for instr in instructions:
         print(instr)
     write_msm(instructions, "out.msm")
@@ -72,7 +72,6 @@ def gencode(arbre):
 def debug_lexer(filepath):
     print(f"--- Analyse lexicale de '{filepath}' ---")
     LEX.init_from_file(filepath)
-    print(f"Premier token: {LEX.T.type.name}, Chaine: '{LEX.T.chaine}'")
     while LEX.T and LEX.T.type.name != "tok_eof":
         print(f"{LEX.T.type.name} -> '{LEX.T.chaine}'")
         LEX.T = LEX.next()
