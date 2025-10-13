@@ -1,6 +1,6 @@
 int main() {
-    int a;
-    a = 5;
-    debug a;
+    int arr;
+    [0]arr = 30;
+    debug [0]arr;
     return 0;
 }

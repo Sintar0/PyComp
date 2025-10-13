@@ -40,6 +40,10 @@ class NodeTypes(Enum):
     node_fonction = 40   # function ref(params) block
     node_call = 41       # ref(args)
     node_return = 42     # return expr
+    # pointeurs et tableaux
+    node_indirection = 43  # *P (déréférencement)
+    node_address = 44      # &P (adresse de)
+    node_array_access = 45 # A[E] ou [E]A
     
 
 

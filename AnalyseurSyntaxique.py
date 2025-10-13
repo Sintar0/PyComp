@@ -46,12 +46,23 @@ class AnalyseurSyntaxique:
         return N
 
     def P(self):
-        # +x -> x ; -x -> (0 - x)
-        if LEX.T and LEX.T.type == TokenType.tok_moins:
+        # *P -> indirection (déréférencement)
+        if LEX.T and LEX.T.type == TokenType.tok_etoile:
+            LEX.match(TokenType.tok_etoile)
+            sous = self.P()
+            return self.node_1_enfant(NodeTypes.node_indirection, sous)
+        # &P -> adresse de
+        elif LEX.T and LEX.T.type == TokenType.tok_addr:
+            LEX.match(TokenType.tok_addr)
+            sous = self.P()
+            return self.node_1_enfant(NodeTypes.node_address, sous)
+        # -x -> (0 - x)
+        elif LEX.T and LEX.T.type == TokenType.tok_moins:
             LEX.match(TokenType.tok_moins)
             sous = self.P()
-            zero = self.node_valeur(NodeTypes.nd_const, 0, "0")
-            return self.node_2_enfants(NodeTypes.nd_sub, zero, sous)
+            zero = self.node_valeur(NodeTypes.node_const, 0, "0")
+            return self.node_2_enfants(NodeTypes.node_moins, zero, sous)
+        # +x -> x
         elif LEX.T and LEX.T.type == TokenType.tok_plus:
             LEX.match(TokenType.tok_plus)
             return self.P()
@@ -59,7 +70,28 @@ class AnalyseurSyntaxique:
             return self.S()
 
     def S(self):
+        # Gérer [E]A (notation préfixe pour tableaux)
+        if LEX.T and LEX.T.type == TokenType.tok_croche_ouvrante:
+            LEX.match(TokenType.tok_croche_ouvrante)
+            index = self.E(0)
+            if not LEX.match(TokenType.tok_croche_fermeante):
+                LEX.erreur("']' attendu")
+                return None
+            base = self.A()
+            return self.node_2_enfants(NodeTypes.node_array_access, base, index)
+        
         N = self.A()
+        
+        # Gérer A[E] (notation postfixe pour tableaux)
+        if LEX.T and LEX.T.type == TokenType.tok_croche_ouvrante:
+            LEX.match(TokenType.tok_croche_ouvrante)
+            index = self.E(0)
+            if not LEX.match(TokenType.tok_croche_fermeante):
+                LEX.erreur("']' attendu")
+                return None
+            return self.node_2_enfants(NodeTypes.node_array_access, N, index)
+        
+        # Gérer A(...) (appels de fonction)
         if LEX.T and LEX.T.type == TokenType.tok_parenthese_ouvrante:
             LEX.match(TokenType.tok_parenthese_ouvrante)
             args = []
@@ -173,17 +205,22 @@ class AnalyseurSyntaxique:
             LEX.accept(TokenType.tok_accolade_fermeante)
             return self.node_block(enfants)
 
-        # int ident ;
+        # int *p ; ou int **p ; (déclarations de pointeurs)
         if LEX.check(TokenType.tok_int):
             LEX.accept(TokenType.tok_int)
+            # Compter les étoiles pour les pointeurs
+            nb_stars = 0
+            while LEX.check(TokenType.tok_etoile):
+                LEX.accept(TokenType.tok_etoile)
+                nb_stars += 1
             if not LEX.check(TokenType.tok_ident):
                 LEX.erreur("identifiant attendu après 'int'")
                 return None
             name_tok = LEX.T
             LEX.accept(TokenType.tok_ident)
             LEX.accept(TokenType.tok_point_virgule)
-            # nd_decl(name)
-            return self.node_valeur(NodeTypes.node_declare, 0, name_tok.chaine)
+            # nd_decl(name) avec nb_stars dans valeur
+            return self.node_valeur(NodeTypes.node_declare, nb_stars, name_tok.chaine)
         # I <- ... | if(E) I(else I)?
         if LEX.check(TokenType.tok_if):
             LEX.accept(TokenType.tok_if)

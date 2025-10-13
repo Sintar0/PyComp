@@ -1,11 +1,17 @@
 .start
 .main
 resn 1
-push 5
-dup
-set 0
+push 0
+push 0
+add
+push 30
+swap
+write
 drop 1
-get 0
+push 0
+push 0
+add
+read
 dbg
 push 0
 ret

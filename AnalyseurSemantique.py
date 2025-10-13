@@ -96,20 +96,38 @@ def SemNode(N):
         endBlock()
         N.nbvar = NBvar - saved_nbvar
         return
+    
+    # node_indirection : *P (déréférencement)
+    if t == NodeTypes.node_indirection:
+        SemNode(N.enfants[0])
+        return
+    
+    # node_address : &P (adresse de)
+    if t == NodeTypes.node_address:
+        SemNode(N.enfants[0])
+        return
+    
+    # node_array_access : A[E] ou [E]A
+    if t == NodeTypes.node_array_access:
+        SemNode(N.enfants[0])  # base
+        SemNode(N.enfants[1])  # index
+        return
+    
     # autres : descente simple
     for c in N.enfants:
         SemNode(c)
 
 
-    # nd_affect(ref, expr) : check que gauche=ref, sémantique des enfants
+    # nd_affect(ref, expr) : check que gauche=ref/indirection/array_access, sémantique des enfants
     if t == NodeTypes.node_affect:
         if len(N.enfants) < 2:
             raise SemError("Affectation mal formée")
         lhs, rhs = N.enfants[0], N.enfants[1]
         SemNode(lhs)
         SemNode(rhs)
-        if lhs.type != NodeTypes.node_reference:
-            raise SemError("LHS d'une affectation doit être une référence")
+        # Accepter référence, indirection (*p) ou accès tableau (arr[i])
+        if lhs.type not in [NodeTypes.node_reference, NodeTypes.node_indirection, NodeTypes.node_array_access]:
+            raise SemError("LHS d'une affectation doit être une référence, *p ou arr[i]")
         return
 
     # autres : descente simple

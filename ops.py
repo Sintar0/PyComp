@@ -168,10 +168,8 @@ NF = {
     NodeTypes.node_return:        lambda n: GenNode(n.enfants[0]) + ["ret"],
 
 
-    # affect: lhs=ref(name/index), rhs=expr
-    NodeTypes.node_affect:         lambda n: (
-        GenNode(n.enfants[1]) + ["dup", f"set {n.enfants[0].valeur}"]
-    ),
+    # affect: lhs=ref(name/index), rhs=expr (voir NF_affect ci-dessous)
+    NodeTypes.node_affect: None,  # Sera défini après
     
     # if(E) I(else I)? 
     NodeTypes.node_cond: NF_cond    ,
@@ -183,9 +181,44 @@ NF = {
     #fonction et appel
     NodeTypes.node_fonction: NF_fonction,
     NodeTypes.node_call: NF_call,
+    
+    # pointeurs et tableaux
+    NodeTypes.node_indirection: lambda n: GenNode(n.enfants[0]) + ["read"],
+    NodeTypes.node_address: lambda n: [f"push {n.enfants[0].valeur}"],
+    NodeTypes.node_array_access: lambda n: (
+        [f"push {n.enfants[0].valeur}"] +  # base (adresse de départ)
+        GenNode(n.enfants[1]) +             # index
+        ["add", "read"]                     # base+index puis lecture
+    ),
 
 
 }
+
+# Fonction spéciale pour node_affect (gère *p = val et arr[i] = val)
+def NF_affect(n):
+    lhs, rhs = n.enfants[0], n.enfants[1]
+    
+    # CAS 1: *p = expr (écriture indirecte)
+    if lhs.type == NodeTypes.node_indirection:
+        # write attend: pile = [adresse, valeur] (valeur au sommet)
+        return GenNode(lhs.enfants[0]) + GenNode(rhs) + ["swap", "write"]
+    
+    # CAS 2: arr[i] = expr (écriture tableau)
+    elif lhs.type == NodeTypes.node_array_access:
+        return (
+            [f"push {lhs.enfants[0].valeur}"] +  # base
+            GenNode(lhs.enfants[1]) +            # index
+            ["add"] +                            # adresse = base+index
+            GenNode(rhs) +                       # valeur
+            ["swap", "write"]                    # swap puis écriture
+        )
+    
+    # CAS 3: a = expr (affectation normale)
+    else:
+        return GenNode(rhs) + ["dup", f"set {lhs.valeur}"]
+
+# Assigner NF_affect dans le dictionnaire
+NF[NodeTypes.node_affect] = NF_affect
 
 
 
