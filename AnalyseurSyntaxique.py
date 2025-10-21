@@ -56,6 +56,11 @@ class AnalyseurSyntaxique:
             LEX.match(TokenType.tok_addr)
             sous = self.P()
             return self.node_1_enfant(NodeTypes.node_address, sous)
+        # !P -> négation logique
+        elif LEX.T and LEX.T.type == TokenType.tok_not:
+            LEX.match(TokenType.tok_not)
+            sous = self.P()
+            return self.node_1_enfant(NodeTypes.node_not, sous)
         # -x -> (0 - x)
         elif LEX.T and LEX.T.type == TokenType.tok_moins:
             LEX.match(TokenType.tok_moins)

@@ -1,0 +1,24 @@
+.start
+; Écrire 42 à l'adresse 0
+push 0      ; adresse
+push 42     ; valeur
+swap        ; [42, 0]
+write       ; écrit
+
+; Lire l'adresse 0
+push 0
+read
+dbg
+
+; Écrire 100 à l'adresse 0
+push 0      ; adresse
+push 100    ; valeur
+swap        ; [100, 0]
+write
+
+; Lire à nouveau
+push 0
+read
+dbg
+
+halt

@@ -159,6 +159,7 @@ NF = {
 
     NodeTypes.node_et:             lambda n: GenNode(n.enfants[0]) + GenNode(n.enfants[1]) + ["and"],
     NodeTypes.node_ou:             lambda n: GenNode(n.enfants[0]) + GenNode(n.enfants[1]) + ["or"],
+    NodeTypes.node_not:            lambda n: GenNode(n.enfants[0]) + ["not"],
 
     # Instructions
     NodeTypes.node_block:          lambda n: sum((GenNode(child) for child in n.enfants), []),  # PAS de start/halt ici
@@ -184,7 +185,7 @@ NF = {
     
     # pointeurs et tableaux
     NodeTypes.node_indirection: lambda n: GenNode(n.enfants[0]) + ["read"],
-    NodeTypes.node_address: lambda n: [f"push {n.enfants[0].valeur}"],
+    NodeTypes.node_address: None,  # Sera défini après (cas spécial)
     NodeTypes.node_array_access: lambda n: (
         [f"push {n.enfants[0].valeur}"] +  # base (adresse de départ)
         GenNode(n.enfants[1]) +             # index
@@ -200,8 +201,8 @@ def NF_affect(n):
     
     # CAS 1: *p = expr (écriture indirecte)
     if lhs.type == NodeTypes.node_indirection:
-        # write attend: pile = [adresse, valeur] (valeur au sommet)
-        return GenNode(lhs.enfants[0]) + GenNode(rhs) + ["swap", "write"]
+        # write ne laisse rien sur la pile, on push 0 pour node_drop
+        return GenNode(lhs.enfants[0]) + GenNode(rhs) + ["swap", "write", "push 0"]
     
     # CAS 2: arr[i] = expr (écriture tableau)
     elif lhs.type == NodeTypes.node_array_access:
@@ -210,7 +211,7 @@ def NF_affect(n):
             GenNode(lhs.enfants[1]) +            # index
             ["add"] +                            # adresse = base+index
             GenNode(rhs) +                       # valeur
-            ["swap", "write"]                    # swap puis écriture
+            ["swap", "write", "push 0"]          # write + placeholder pour drop
         )
     
     # CAS 3: a = expr (affectation normale)
@@ -219,6 +220,25 @@ def NF_affect(n):
 
 # Assigner NF_affect dans le dictionnaire
 NF[NodeTypes.node_affect] = NF_affect
+
+# Fonction spéciale pour node_address (gère &var et &arr[i])
+def NF_address(n):
+    child = n.enfants[0]
+    
+    # CAS 1: &arr[i] -> calculer l'adresse base+index (sans read)
+    if child.type == NodeTypes.node_array_access:
+        return (
+            [f"push {child.enfants[0].valeur}"] +  # base
+            GenNode(child.enfants[1]) +            # index
+            ["add"]                                # adresse = base+index
+        )
+    
+    # CAS 2: &var -> push l'indice de la variable
+    else:
+        return [f"push {child.valeur}"]
+
+# Assigner NF_address dans le dictionnaire
+NF[NodeTypes.node_address] = NF_address
 
 
 

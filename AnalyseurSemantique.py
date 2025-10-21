@@ -83,7 +83,9 @@ def SemNode(N):
         if func_name_node.type != NodeTypes.node_reference:
             raise SemError("Le nom de la fonction doit être une référence")
         declare(func_name_node.chaine, "fonction")
+        # Sauvegarder NBvar global et réinitialiser pour la fonction
         saved_nbvar = NBvar
+        NBvar = 0  # ← CORRECTION: Réinitialiser l'indexation locale
         beginBlock()
         for param in N.enfants[1:-1]:  # paramètres
             if param.type != NodeTypes.node_reference:
@@ -94,7 +96,8 @@ def SemNode(N):
         body = N.enfants[-1]
         SemNode(body)
         endBlock()
-        N.nbvar = NBvar - saved_nbvar
+        N.nbvar = NBvar  # ← CORRECTION: Nombre total de variables locales
+        NBvar = saved_nbvar  # ← Restaurer NBvar global
         return
     
     # node_indirection : *P (déréférencement)

@@ -48,7 +48,6 @@ def write_msm(program_instructions: list, out_path: str):
         f.write(".start\n")
         for instr in program_instructions:
             process_instruction(instr, f)
-        f.write("halt\n")
 
 def analyse_semantique(arbre):
     print("=== Analyse sémantique ===")
@@ -62,11 +61,16 @@ def optimisation(arbre):
 def gencode(arbre):
     print("=== Génération de code (postfixe) ===")
     instructions = []
+    # Générer le code de toutes les fonctions
     for child in arbre.enfants:
         instructions += GenNode(child)
-    for instr in instructions:
+    # Ajouter l'appel à main au début, puis halt, puis les définitions fonctions
+    main_call = ["prep main", "call 0", "halt"]
+    # Réorganiser : appel main + halt, puis définitions fonctions
+    final_instructions = main_call + instructions
+    for instr in final_instructions:
         print(instr)
-    write_msm(instructions, "out.msm")
+    write_msm(final_instructions, "out.msm")
     print("→ Programme MSM écrit dans out.msm")
 
 def debug_lexer(filepath):

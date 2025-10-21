@@ -36,22 +36,23 @@ class TokenType(Enum):
     tok_et = 24
     tok_ou = 25
     tok_addr = 26
+    tok_not = 27
 
-    tok_int = 27
-    tok_void = 28
-    tok_return = 29
-    tok_do = 30
-    tok_if = 31
-    tok_else = 32
-    tok_while = 33
-    tok_for = 34
-    tok_default = 35
-    tok_break = 36
-    tok_continue = 37
-    tok_debug = 38
-    tok_send = 39
-    tok_recv = 40
-    tok_error = 41
+    tok_int = 28
+    tok_void = 29
+    tok_return = 30
+    tok_do = 31
+    tok_if = 32
+    tok_else = 33
+    tok_while = 34
+    tok_for = 35
+    tok_default = 36
+    tok_break = 37
+    tok_continue = 38
+    tok_debug = 39
+    tok_send = 40
+    tok_recv = 41
+    tok_error = 42
 
 class Token:
     def __init__(self, type, valeur, chaine):
@@ -217,23 +218,24 @@ class TokenType(Enum):
     tok_et = 24         # '&&'
     tok_ou = 25         # '||'
     tok_addr = 26       # '&' seul
+    tok_not = 27        # '!' seul
 
-    tok_int = 27
-    tok_void = 28
-    tok_return = 29
-    tok_do = 30
-    tok_if = 31
-    tok_else = 32
-    tok_while = 33
-    tok_for = 34
-    tok_default = 35
-    tok_break = 36
-    tok_continue = 37
+    tok_int = 28
+    tok_void = 29
+    tok_return = 30
+    tok_do = 31
+    tok_if = 32
+    tok_else = 33
+    tok_while = 34
+    tok_for = 35
+    tok_default = 36
+    tok_break = 37
+    tok_continue = 38
 
-    tok_debug = 38
-    tok_send = 39
-    tok_recv = 40
-    tok_error = 41
+    tok_debug = 39
+    tok_send = 40
+    tok_recv = 41
+    tok_error = 42
 
 class Token:
     def __init__(self, type, valeur, chaine):
@@ -369,6 +371,7 @@ def next():
         '>': TokenType.tok_supérieur,
         '<': TokenType.tok_inférieur,
         '&': TokenType.tok_addr,
+        '!': TokenType.tok_not,
     }
     if current_char in table:
         ch = current_char

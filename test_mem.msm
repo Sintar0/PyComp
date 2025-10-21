@@ -1,0 +1,9 @@
+.start
+; Tester ce qui est aux adresses mémoire 0 et 1
+push 0
+read
+dbg
+push 1  
+read
+dbg
+halt
