@@ -1,10 +1,12 @@
 int main() {
     int i;
     int sum;
+    i = 0;
     sum = 0;
-    for (i = 0; i < 5; i = i + 1) {
+    do {
         sum = sum + i;
-    }
+        i = i + 1;
+    } while (i < 5);
     debug sum;
     return 0;
 }
