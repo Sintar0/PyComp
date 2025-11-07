@@ -96,8 +96,8 @@ def SemNode(N):
         body = N.enfants[-1]
         SemNode(body)
         endBlock()
-        N.nbvar = NBvar  # ← CORRECTION: Nombre total de variables locales
-        NBvar = saved_nbvar  # ← Restaurer NBvar global
+        N.nbvar = NBvar  #Nombre total de variables locales
+        NBvar = saved_nbvar  # Restaurer NBvar global
         return
     
     # node_indirection : *P (déréférencement)
@@ -112,8 +112,8 @@ def SemNode(N):
     
     # node_array_access : A[E] ou [E]A
     if t == NodeTypes.node_array_access:
-        SemNode(N.enfants[0])  # base
-        SemNode(N.enfants[1])  # index
+        SemNode(N.enfants[0])  
+        SemNode(N.enfants[1])  
         return
     
     # autres : descente simple

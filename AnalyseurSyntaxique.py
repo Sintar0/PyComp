@@ -1,17 +1,13 @@
-# -*- coding: utf-8 -*-
 import AnalyseurLexicale as LEX
 from AnalyseurLexicale import TokenType
 from ast_nodes import Node, NodeTypes
-from ops import OP   # table opérateurs: prio/parg/Ntype (inclure '=' prio 1 → nd_affect)
+from ops import OP   
 
 class AnalyseurSyntaxique:
     def __init__(self, filepath):
-        # init pédagogique : LEX.T positionné sur le 1er token
         LEX.init_from_file(filepath)
-        # Programme = séquence d'instructions jusqu'à EOF
         self.arbre = self.Programme()
 
-    # --- helpers pour fabriquer les nœuds ---
     def node_valeur(self, type, valeur, chaine=""):
         return Node(type, valeur, chaine)
 
@@ -32,7 +28,6 @@ class AnalyseurSyntaxique:
             n.ajouter_enfant(e)
         return n
 
-    # --- grammaire des expressions (cours 3) ---
     def E(self, prio):
         N = self.P()
         while LEX.T and (LEX.T.type in OP):
@@ -40,34 +35,34 @@ class AnalyseurSyntaxique:
             if entry["prio"] < prio:
                 break
             op_tok = LEX.T.type
-            LEX.match(op_tok)                 # consomme l’opérateur courant
-            M = self.E(entry["parg"])         # assoc/priority par table
+            LEX.match(op_tok)                 
+            M = self.E(entry["parg"])         
             N = self.node_2_enfants(entry["Ntype"], N, M)
         return N
 
     def P(self):
-        # *P -> indirection (déréférencement)
+        # *P : indirection (déréférencement)
         if LEX.T and LEX.T.type == TokenType.tok_etoile:
             LEX.match(TokenType.tok_etoile)
             sous = self.P()
             return self.node_1_enfant(NodeTypes.node_indirection, sous)
-        # &P -> adresse de
+        # &P : adresse de
         elif LEX.T and LEX.T.type == TokenType.tok_addr:
             LEX.match(TokenType.tok_addr)
             sous = self.P()
             return self.node_1_enfant(NodeTypes.node_address, sous)
-        # !P -> négation logique
+        # !P : négation logique
         elif LEX.T and LEX.T.type == TokenType.tok_not:
             LEX.match(TokenType.tok_not)
             sous = self.P()
             return self.node_1_enfant(NodeTypes.node_not, sous)
-        # -x -> (0 - x)
+        # -x : (0 - x)
         elif LEX.T and LEX.T.type == TokenType.tok_moins:
             LEX.match(TokenType.tok_moins)
             sous = self.P()
             zero = self.node_valeur(NodeTypes.node_const, 0, "0")
             return self.node_2_enfants(NodeTypes.node_moins, zero, sous)
-        # +x -> x
+        # +x : x
         elif LEX.T and LEX.T.type == TokenType.tok_plus:
             LEX.match(TokenType.tok_plus)
             return self.P()
@@ -75,7 +70,6 @@ class AnalyseurSyntaxique:
             return self.S()
 
     def S(self):
-        # Gérer [E]A (notation préfixe pour tableaux)
         if LEX.T and LEX.T.type == TokenType.tok_croche_ouvrante:
             LEX.match(TokenType.tok_croche_ouvrante)
             index = self.E(0)
@@ -87,7 +81,6 @@ class AnalyseurSyntaxique:
         
         N = self.A()
         
-        # Gérer A[E] (notation postfixe pour tableaux)
         if LEX.T and LEX.T.type == TokenType.tok_croche_ouvrante:
             LEX.match(TokenType.tok_croche_ouvrante)
             index = self.E(0)
@@ -96,7 +89,6 @@ class AnalyseurSyntaxique:
                 return None
             return self.node_2_enfants(NodeTypes.node_array_access, N, index)
         
-        # Gérer A(...) (appels de fonction)
         if LEX.T and LEX.T.type == TokenType.tok_parenthese_ouvrante:
             LEX.match(TokenType.tok_parenthese_ouvrante)
             args = []
@@ -111,11 +103,10 @@ class AnalyseurSyntaxique:
             if not LEX.match(TokenType.tok_parenthese_fermeante):
                 LEX.erreur("')' attendu")
                 return None
-            # nd_call (fonction, args...)
             call_node = Node(NodeTypes.node_call)
-            call_node.ajouter_enfant(N)  # fonction
+            call_node.ajouter_enfant(N)  
             for a in args:
-                call_node.ajouter_enfant(a)  # arguments
+                call_node.ajouter_enfant(a)  
             return call_node
         return N
 
@@ -136,30 +127,14 @@ class AnalyseurSyntaxique:
         elif LEX.check(TokenType.tok_ident):
             tok = LEX.T
             LEX.match(TokenType.tok_ident)
-            # ident → nd_ref(name) (cours 5)
             return self.node_valeur(NodeTypes.node_reference, 0, tok.chaine)
 
         else:
             LEX.erreur(f"Atome attendu, trouvé: {(LEX.T.type.name if LEX.T else 'None')}")
             return None
-        
-    # F → int ident ( (int ident (, int ident)*)? ) I
+
+       
     def F(self):
-        
-        '''
-        accept(tok_int);
-        accept(tok_ident);
-        LAST = tok_ident
-        accept(tok_parenthese_ouvrant);
-        if(!check(tok_parenthese_ouvrant)){
-        do{accept(tok_int);
-        accept(tok_ident);
-        }
-        while(check(tok_virgule))
-        accept(tok_parentèse_fermante)
-        }
-        I();
-        '''
         LEX.accept(TokenType.tok_int)
         if not LEX.check(TokenType.tok_ident):
             LEX.erreur("identifiant attendu après 'int'")
@@ -187,11 +162,11 @@ class AnalyseurSyntaxique:
         func_node.ajouter_enfant(self.node_valeur(NodeTypes.node_reference, 0, LAST.chaine))  # nom de la fonction
         for p in params:
             func_node.ajouter_enfant(self.node_valeur(NodeTypes.node_reference, 0, p))  # paramètres
-        func_node.ajouter_enfant(body)  # corps de la fonction
+        func_node.ajouter_enfant(body) 
         return func_node
     
 
-    # --- grammaire des instructions (cours 4/5) ---
+   
     # I → debug E ; | { I* } | int ident ; | E ;
     def I(self):
         # debug E ;
@@ -213,7 +188,6 @@ class AnalyseurSyntaxique:
         # int *p ; ou int **p ; (déclarations de pointeurs)
         if LEX.check(TokenType.tok_int):
             LEX.accept(TokenType.tok_int)
-            # Compter les étoiles pour les pointeurs
             nb_stars = 0
             while LEX.check(TokenType.tok_etoile):
                 LEX.accept(TokenType.tok_etoile)
@@ -224,7 +198,6 @@ class AnalyseurSyntaxique:
             name_tok = LEX.T
             LEX.accept(TokenType.tok_ident)
             LEX.accept(TokenType.tok_point_virgule)
-            # nd_decl(name) avec nb_stars dans valeur
             return self.node_valeur(NodeTypes.node_declare, nb_stars, name_tok.chaine)
         # I <- ... | if(E) I(else I)?
         if LEX.check(TokenType.tok_if):
@@ -240,19 +213,19 @@ class AnalyseurSyntaxique:
                 LEX.accept(TokenType.tok_else)
                 else_branch = self.I()
 
-            n = Node(NodeTypes.node_cond)            # = "condi" dans tes notes
-            n.ajouter_enfant(cond)                 # enfants[0] = E (test)
-            n.ajouter_enfant(then_branch)          # enfants[1] = I1 (cas vrai)
+            n = Node(NodeTypes.node_cond)            
+            n.ajouter_enfant(cond)                 
+            n.ajouter_enfant(then_branch)          
             if else_branch is not None:
-                n.ajouter_enfant(else_branch)      # enfants[2] = I2 (cas faux, optionnel)
+                n.ajouter_enfant(else_branch)     
             return n
        # while(E) I 
         if LEX.check(TokenType.tok_while):
             LEX.accept(TokenType.tok_while)
             LEX.accept(TokenType.tok_parenthese_ouvrante)
-            E1 = self.E(0)  # condition
+            E1 = self.E(0)  
             LEX.accept(TokenType.tok_parenthese_fermeante)
-            I1 = self.I()   # corps de la boucle
+            I1 = self.I()   
             break_node = Node(NodeTypes.node_break)
             cond_node = Node(NodeTypes.node_cond)
             cond_node.ajouter_enfant(E1)
@@ -267,10 +240,10 @@ class AnalyseurSyntaxique:
             # do I while (E) ;
         if LEX.check(TokenType.tok_do):
             LEX.accept(TokenType.tok_do)
-            I1 = self.I()   # corps de la boucle
+            I1 = self.I()   
             LEX.accept(TokenType.tok_while)
             LEX.accept(TokenType.tok_parenthese_ouvrante)
-            E1 = self.E(0)  # condition
+            E1 = self.E(0)  
             LEX.accept(TokenType.tok_parenthese_fermeante)
             LEX.accept(TokenType.tok_point_virgule)
 
@@ -288,7 +261,7 @@ class AnalyseurSyntaxique:
             node_cond.ajouter_enfant(node_break)
 
             node_loop = Node(NodeTypes.node_loop)
-            node_loop.ajouter_enfant(node_target)  # ou None si pas utilisé
+            node_loop.ajouter_enfant(node_target)  
             node_loop.ajouter_enfant(node_cond)
 
             return node_loop
@@ -308,7 +281,6 @@ class AnalyseurSyntaxique:
             LEX.accept(TokenType.tok_parenthese_fermeante)
             I1 = self.I()
 
-            # Construction de l'arbre
             node_drop_E1 = Node(NodeTypes.node_drop)
             node_drop_E1.ajouter_enfant(E1)
 
@@ -330,7 +302,7 @@ class AnalyseurSyntaxique:
             node_cond.ajouter_enfant(node_break)
 
             node_loop = Node(NodeTypes.node_loop)
-            node_loop.ajouter_enfant(node_target)  # ou None si pas utilisé
+            node_loop.ajouter_enfant(node_target)  
             node_loop.ajouter_enfant(node_cond)
 
             node_seq = Node(NodeTypes.node_sequence)
@@ -362,21 +334,11 @@ class AnalyseurSyntaxique:
         LEX.accept(TokenType.tok_point_virgule)
         return self.node_1_enfant(NodeTypes.node_drop, N)
 
-    
 
-
-    # Programme : séquence d’instructions jusqu’à EOF, empaquetée dans un block racine
-    # #je dois rajouter ça je sais pas comment faire
-    #    debut Block
-    #   tant qu'on est différent de EOF niveau token
-    #   genCode()
-    #   fin Block
-    #   print("ident")
     def Programme(self):
         enfants = []
         while LEX.T and LEX.T.type != TokenType.tok_eof:
             if LEX.check(TokenType.tok_int):
-                # Déclaration de fonction
                 func_node = self.F()
                 if func_node is not None:
                     enfants.append(func_node)

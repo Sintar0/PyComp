@@ -20,32 +20,31 @@ class NodeTypes(Enum):
     # logiques
     node_et = 24
     node_ou = 25
-    node_not = 26  # opérateur unaire !
+    node_not = 26  # opérateur unaire 
 
     # instructions / variables
     node_block = 27
     node_debug = 28
-    node_stmt_expr = 29   # (conservé si utile)
+    node_stmt_expr = 29   
     node_drop = 30
-    node_var = 31         # (réservé)
-    node_declare = 32     # decl name;
-    node_reference = 33   # ref name
-    node_affect = 34      # ref = expr
-    # structures de contrôle
-    node_cond = 35         # if(E) I(else I)?
-    node_loop = 36        # while(E)I|break|continue
+    node_var = 31         
+    node_declare = 32     
+    node_reference = 33   
+    node_affect = 34      
+    node_cond = 35        
+    node_loop = 36       
     node_target = 37    
     node_break = 38
     node_continue = 39
     node_sequence = 40   
-    node_fonction = 41   # function ref(params) block
-    node_call = 42       # ref(args)
-    node_return = 43     # return expr
+    node_fonction = 41   
+    node_call = 42       
+    node_return = 43     
     # pointeurs et tableaux
-    node_indirection = 44  # *P (déréférencement)
-    node_address = 45      # &P (adresse de)
-    node_array_access = 46 # A[E] ou [E]A
-    
+    node_indirection = 44  
+    node_address = 45      
+    node_array_access = 46 
+
 
 
 
