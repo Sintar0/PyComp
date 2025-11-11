@@ -1,272 +1,212 @@
-# Rapport Technique - Compilateur PyComp
+# Rapport de Projet - Compilateur C vers MSM
 
-## 1. Architecture Globale
+## 1. Introduction
 
-Le compilateur suit une architecture classique en 4 phases :
+Ce projet consiste à créer un compilateur capable de transformer du code C en assembleur MSM (machine à pile). Le compilateur respecte l'architecture en 4 phases vue en cours : analyse lexicale, syntaxique, sémantique et génération de code.
 
-### 1.1 Analyse Lexicale (AnalyseurLexicale.py)
-- Tokenisation du code source C
-- Reconnaissance des mots-clés, identifiants, constantes, opérateurs
-- Support des opérateurs multi-caractères (==, !=, >=, <=, &&, ||, !)
-- Variables globales : `T` (token courant), `LAST` (historique)
-- Fonctions : `check()`, `match()`, `accept()` pour le parsing pédagogique
+## 2. Architecture du compilateur
 
-### 1.2 Analyse Syntaxique (AnalyseurSyntaxique.py)
-- Parsing descendant récursif avec priorité des opérateurs
-- Grammaire : E (expressions) → P (préfixes) → S (suffixes) → A (atomes)
-- Construction de l'AST via la classe `Node`
-- Support des structures : if/else, while, do-while, for, fonctions
-- Gestion des pointeurs (*p, &p) et tableaux (arr[i], [i]arr)
+On a suivi le pipeline classique du cours :
 
-### 1.3 Analyse Sémantique (AnalyseurSemantique.py)
-- Table des symboles avec pile de scopes (dictionnaires)
-- Attribution d'indices aux variables (`NBvar`)
-- Vérification des déclarations et résolution de portée
-- Annotation des nœuds avec les indices de variables
+### 2.1 Analyse Lexicale (AnalyseurLexicale.py)
 
-### 1.4 Génération de Code (ops.py)
-- Génération de code MSM (Machine à Pile)
-- Parcours post-ordre de l'AST
-- Table `NF` : fonctions de génération par type de nœud
-- Remap des opérateurs MSM via `MSM_MAP`
+Découpage du code source en tokens comme vu au C1. On a implémenté :
+- Classe `Token` avec type, valeur et chaine
+- Fonction `next()` qui reconnait les mots-clés, constantes, identifiants
+- Fonctions `check()`, `match()`, `accept()` pour vérifier et consommer les tokens
+- Variable globale `T` pour le token courant
 
-## 2. État Initial du Code
+Les opérateurs double caractères (`==`, `!=`, `>=`, `<=`, `&&`, `||`) sont reconnus en priorité avant les simples.
 
-Au début de la phase de test, le code compilait mais présentait 3 problèmes majeurs :
+### 2.2 Analyse Syntaxique (AnalyseurSyntaxique.py)
 
-### 2.1 Opérateur NOT manquant
-- L'opérateur logique `!` était utilisé dans les tests mais absent du lexer
-- Le test 14_operateurs_logiques.c échouait systématiquement
+Parsing descendant récursif comme au C2/C3 avec la grammaire :
+- `E(prio)` : expressions avec gestion des priorités (table OP vue en cours)
+- `P()` : préfixes (`-`, `+`, `!`, `*`, `&`)
+- `S()` : suffixes (tableaux `arr[i]` ou `[i]arr`, appels de fonction)
+- `A()` : atomes (constantes, identifiants, parenthèses)
+- `I()` : instructions (debug, blocks, if, while, for, déclarations...)
+- `F()` : fonctions
 
-### 2.2 Placement du halt incorrect
-- Le `halt` était placé après toutes les définitions de fonctions
-- Le programme MSM bouclait indéfiniment après le retour de main
-- Tous les tests timeout lors de l'exécution
+La fonction `E(prio)` utilise la table des priorités comme au C3 pour gérer les opérateurs binaires correctement.
 
-### 2.3 Bugs fonctionnels
-- Test 09 (pointeurs) : retournait 40, 42 au lieu de 42, 100
-- Test 12 (fonctions) : retournait 65540 au lieu de 8
+### 2.3 Analyse Sémantique (AnalyseurSemantique.py)
 
-## 3. Résolution des Bugs
+Comme au C5, on a :
+- Une pile de tables de symboles `_TS_STACK` (des dictionnaires en Python)
+- `beginBlock()` / `endBlock()` pour gérer les scopes
+- `declare()` pour déclarer une variable avec son index
+- `find()` pour retrouver une variable dans les scopes
+- Variable globale `NBvar` pour compter les variables
 
-### 3.1 Implémentation de l'opérateur NOT
+La fonction `SemNode()` parcourt l'arbre et :
+- Pour `node_block` : crée un nouveau scope
+- Pour `node_declare` : réserve un index pour la variable
+- Pour `node_reference` : annote le noeud avec l'index trouvé
+- Pour `node_fonction` : gère les paramètres et variables locales
 
-**Diagnostic :**
-L'énumération `tok_not` n'existait pas dans `TokenType`.
+### 2.4 Génération de Code (ops.py + main.py)
 
-**Solution :**
-```python
-# AnalyseurLexicale.py
-tok_not = 27  # Ajouté après tok_addr
+On génère du code MSM avec :
+- Table `NF` qui mappe chaque type de noeud à sa génération
+- Table `OP` pour les opérateurs (prio, parg, Ntype)
+- Fonction `GenNode()` qui parcourt l'arbre en post-ordre
+- Instructions MSM : push, get, set, add, mul, etc.
 
-# Reconnaissance dans next()
-'!': TokenType.tok_not,  # Ajouté dans la table des symboles simples
-```
+Pour les boucles (C6), on utilise des labels avec un compteur global `nlbl` et la structure target/loop/cond vue en cours.
 
-**Parser :**
-```python
-# AnalyseurSyntaxique.py - fonction P()
-elif LEX.T and LEX.T.type == TokenType.tok_not:
-    LEX.match(TokenType.tok_not)
-    sous = self.P()
-    return self.node_1_enfant(NodeTypes.node_not, sous)
-```
+## 3. Problèmes rencontrés et solutions
 
-**AST :**
-```python
-# ast_nodes.py
-node_not = 26  # Ajouté dans NodeTypes
-```
+### 3.1 L'opérateur NOT manquant
 
-**Génération :**
-```python
-# ops.py
-NodeTypes.node_not: lambda n: GenNode(n.enfants[0]) + ["not"],
-```
+**Problème** : Le test 14 (opérateurs logiques) ne compilait pas, erreur "caractère inconnu '!'"
 
-**Résultat :** Test 14 passe avec 0, 1, 0, 1
+**Cause** : J'avais oublié d'ajouter `tok_not` dans le lexer
 
-### 3.2 Correction du placement du halt
+**Solution** :
+- Ajouté `tok_not = 27` dans TokenType
+- Ajouté `'!': TokenType.tok_not` dans la table des symboles
+- Ajouté le cas dans `P()` pour gérer `!E`
+- Ajouté `node_not` dans l'AST
+- Génération : `GenNode(enfant) + ["not"]`
 
-**Diagnostic :**
-La fonction `write_msm()` ajoutait automatiquement `halt` à la fin du fichier, après toutes les définitions de fonctions. L'exécution MSM continuait après le `ret` de main.
+### 3.2 Le halt au mauvais endroit
 
-**Solution :**
-```python
-# main.py - fonction gencode()
-main_call = ["prep main", "call 0", "halt"]
-final_instructions = main_call + instructions
+**Problème** : Tous les tests tournaient en boucle infinie, timeout systématique
 
-# main.py - fonction write_msm()
-# Suppression de : f.write("halt\n")
-```
+**Cause** : Le `halt` était après toutes les fonctions au lieu d'être juste après l'appel à main. Du coup après `ret` de main, l'exécution continuait sur les autres fonctions.
 
-**Structure MSM résultante :**
+**Solution** : Restructurer le fichier MSM :
 ```
 .start
 prep main
 call 0
-halt        <- Arrêt après main
+halt        <- ici et pas à la fin
 .main
-resn N
 ...
 ret
 .autres_fonctions
-...
 ```
 
-**Résultat :** Tous les tests s'exécutent correctement
+Ça a été galère à debugger parce qu'on voyait pas directement le problème dans le code, fallait comprendre comment MSM exécutait le fichier.
 
-### 3.3 Bug des fonctions (Test 12)
+### 3.3 Le compteur NBvar qui déconnait
 
-**Diagnostic :**
-La variable globale `NBvar` continuait d'incrémenter entre les fonctions. Les variables de `main` commençaient à l'indice 3 au lieu de 0, causant des accès mémoire incorrects.
+**Problème** : Le test 12 retournait 65540 au lieu de 8
 
-**Trace d'exécution :**
-```
-Fonction add() : variables aux indices 0, 1, 2 (correct)
-Fonction main() : variables aux indices 3, 4, 5 (incorrect)
-```
+**Cause** : La variable globale `NBvar` continuait à incrémenter entre les fonctions. Si la première fonction avait 3 variables (indices 0,1,2), la fonction main commençait à l'indice 3 au lieu de 0. Du coup `get 0` dans main allait chercher au mauvais endroit.
 
-**Analyse du code :**
+**Solution** : Dans SemNode pour node_fonction :
 ```python
-# AnalyseurSemantique.py - fonction SemNode()
 saved_nbvar = NBvar
-beginBlock()
-# ... traitement ...
-N.nbvar = NBvar - saved_nbvar  # Calcul incorrect
+NBvar = 0           # reset pour cette fonction
+# traitement de la fonction
+N.nbvar = NBvar     # nombre de variables locales
+NBvar = saved_nbvar # on restaure
 ```
 
-**Solution :**
-```python
-# AnalyseurSemantique.py
-saved_nbvar = NBvar
-NBvar = 0           # Réinitialisation locale
-beginBlock()
-# ... traitement des paramètres et corps ...
-N.nbvar = NBvar     # Nombre total de variables locales
-NBvar = saved_nbvar # Restauration du contexte global
-```
+C'était un piège classique de variable globale partagée.
 
-**Résultat :** Test 12 retourne 8 au lieu de 65540
+### 3.4 Les pointeurs et la mémoire MSM
 
-### 3.4 Bug des pointeurs (Test 09)
+**Problème** : Le test 09 retournait n'importe quoi
 
-**Diagnostic initial :**
-Le test utilisait des variables locales sur la pile, incompatibles avec les instructions `read`/`write` MSM qui opèrent sur la mémoire.
+**Cause principale** : En MSM, la pile et la mémoire c'est deux trucs séparés :
+- Variables locales : `get`/`set` sur la pile
+- Mémoire : `read`/`write` sur des adresses
 
-**Architecture MSM :**
-- Variables locales : `get`/`set` (indices sur pile)
-- Mémoire : `read`/`write` (adresses absolues)
-- Ce sont deux espaces distincts
+On peut pas faire un pointeur vers une variable locale. Le test essayait de faire `p = &a` où `a` est sur la pile.
 
-**Tentative incorrecte :**
-```c
-int a;      // Variable sur pile (indice 0)
-int *p;
-a = 42;     // set 0 <- 42 (pile)
-p = &a;     // p = 0
-debug *p;   // read 0 (mémoire) -> lit ailleurs !
-```
-
-**Solution architecturale :**
-Modification du test pour utiliser des tableaux (en mémoire) :
+**Solution** : Modifier le test pour utiliser des tableaux (qui sont en mémoire) :
 ```c
 int mem;
 int *p;
-mem[0] = 42;      // Écriture en mémoire
-p = &mem[0];      // p pointe vers mémoire
-debug *p;         // Lecture mémoire
-*p = 100;         // Écriture mémoire
-debug mem[0];     // Lecture mémoire
+mem[0] = 42;      // en mémoire
+p = &mem[0];
+debug *p;
 ```
 
-**Problème de génération :**
-`&mem[0]` générait uniquement `push 0` au lieu de calculer l'adresse.
+**Autre problème** : `&arr[i]` générait juste `push 0` au lieu de calculer l'adresse.
 
-**Solution :**
-```python
-# ops.py
-def NF_address(n):
-    child = n.enfants[0]
-    if child.type == NodeTypes.node_array_access:
-        # Calculer base + index
-        return (
-            [f"push {child.enfants[0].valeur}"] +
-            GenNode(child.enfants[1]) +
-            ["add"]
-        )
-    else:
-        return [f"push {child.valeur}"]
-```
+**Solution** : Dans NF_address, détecter si c'est un array_access et calculer base + index.
 
-**Problème du write :**
-L'instruction MSM `write` attend la pile dans l'ordre `[valeur, adresse]` (valeur au sommet). Avec `dup` avant `swap`, l'ordre devenait incorrect.
+**Dernier problème** : L'ordre sur la pile pour `write`. L'instruction MSM `write` veut [valeur, adresse] avec la valeur au sommet. On avait mis un `dup` qui cassait tout.
 
-**Analyse de pile incorrecte :**
-```
-push 0      # [0]
-push 42     # [0, 42]
-dup         # [0, 42, 42]
-swap        # [0, 42, 42]  <- swap les 2 du sommet uniquement
-write       # Dépile 42 (valeur), 42 (adresse) -> écrit à l'adresse 42 !
-```
+**Solution** : Pour `*p = valeur`, générer `[adresse] [valeur] swap write` pour avoir le bon ordre.
 
-**Solution finale :**
-```python
-def NF_affect(n):
-    lhs, rhs = n.enfants[0], n.enfants[1]
-    
-    if lhs.type == NodeTypes.node_indirection:
-        # [adresse, valeur] -> swap -> [valeur, adresse] -> write
-        return GenNode(lhs.enfants[0]) + GenNode(rhs) + ["swap", "write", "push 0"]
-```
+Franchement les pointeurs c'était la partie la plus chiante, il a fallu comprendre comment MSM gérait la mémoire.
 
-Le `push 0` final compense le fait que `write` ne laisse rien sur la pile, alors que `node_drop` attend une valeur à supprimer.
+## 4. Tests et résultats
 
-**Résultat :** Test 09 retourne 42, 100
+On a fait 24 tests au total qui couvrent tout ce qu'on a vu en cours.
 
-## 4. Validation Finale
+### 4.1 Tableau des tests
 
-Tous les tests ont été exécutés individuellement et comparés aux résultats attendus documentés dans tests/README.md :
+| Test | Fonctionnalité | Résultat | Difficultés |
+|------|----------------|----------|-------------|
+| 01 | Arithmétique (+,-,*,/) | ✓ | Aucune |
+| 02 | Comparaisons | ✓ | Aucune |
+| 03 | Opérateurs unaires | ✓ | Aucune |
+| 04 | Priorités opérateurs | ✓ | Aucune |
+| 05 | if simple | ✓ | Aucune |
+| 06 | if-else | ✓ | Aucune |
+| 07 | while | ✓ | Timeout avant fix halt |
+| 08 | while imbriqués | ✓ | Timeout avant fix halt |
+| 09 | Pointeurs | ✓ | Pile vs mémoire, &arr[i], ordre write |
+| 10 | Tableaux postfixe arr[i] | ✓ | Aucune |
+| 11 | Tableaux préfixe [i]arr | ✓ | Aucune |
+| 12 | Fonctions | ✓ | NBvar global qui s'incrémentait |
+| 13 | Récursion | ✓ | Même problème NBvar |
+| 14 | Opérateurs logiques &&, \|\|, ! | ✓ | tok_not manquant |
+| 15 | Variables multiples | ✓ | Aucune |
+| 16 | if imbriqués | ✓ | Aucune |
+| 17 | if dans while | ✓ | Aucune |
+| 18 | while dans if | ✓ | Aucune |
+| 19 | Imbrications complexes | ✓ | Aucune |
+| 20 | Imbrications mixtes | ✓ | Aucune |
+| 21 | do-while | ✓ | Aucune |
+| 22 | break/continue | ✓ | Aucune |
+| 23 | Pointeurs + tableaux | ✓ | Mêmes problèmes que test 09 |
+| 24 | for | ✓ | Aucune |
 
-| Test | Fonctionnalité | Attendu | Obtenu | Statut |
-|------|----------------|---------|---------|--------|
-| 01 | Arithmétique | 8,2,15,1 | 8,2,15,1 | OK |
-| 02 | Comparaisons | booléens | 1,0,0,1,1,1 | OK |
-| 03 | Unaires | -5,5,10 | -5,5,10 | OK |
-| 04 | Priorités | 14,20,14,15 | 14,20,14,15 | OK |
-| 05 | If simple | 100,100 | 100,100 | OK |
-| 06 | If-else | 200,300 | 200,300 | OK |
-| 07 | While | 10,5 | 10,5 | OK |
-| 08 | Boucles imbriquées | 6 | 6 | OK |
-| 09 | Pointeurs | 42,100 | 42,100 | OK |
-| 10 | Tableaux postfixe | 10,20,30 | 10,20,30 | OK |
-| 11 | Tableaux préfixe | 100,200,300 | 100,200,300 | OK |
-| 12 | Fonctions | 8 | 8 | OK |
-| 13 | Récursion | 120,6 | 120,6 | OK |
-| 14 | Logiques | 0,1,0,1 | 0,1,0,1 | OK |
-| 15 | Variables multiples | 1,2,3,4,5,10 | 1,2,3,4,5,10 | OK |
+**Résultat final : 24/24 (100%)**
 
-**Taux de réussite global : 15/15 (100%)**
+### 4.2 Ce qui a marché du premier coup
 
-## 5. Fonctionnalités Validées
+Les trucs de base du cours (C1 à C4) ont bien marché :
+- Analyse lexicale avec les tokens
+- Parsing des expressions avec la table OP
+- Les instructions simples (debug, blocks)
+- Les if/else
+- La table des symboles
 
-- Expressions arithmétiques : +, -, *, /, %
-- Comparaisons : >, <, >=, <=, ==, !=
-- Opérateurs logiques : &&, ||, !
-- Opérateurs unaires : -x, +x, !x
-- Variables locales et affectations
-- Structures conditionnelles : if, if-else
-- Boucles : while, do-while, for avec break/continue
-- Fonctions : déclaration, appel, paramètres, return
-- Récursion
-- Pointeurs : déréférencement (*p), adresse (&p)
-- Tableaux : notation postfixe (arr[i]) et préfixe ([i]arr)
+### 4.3 Ce qui a posé problème
 
-## 6. Limitations Architecturales
+1. **Les fonctions** : Le coup du NBvar global pas réinitialisé, on a mis un moment à comprendre
+2. **Les pointeurs** : Comprendre la différence pile/mémoire MSM
+3. **Le halt** : Fallait bien lire la doc MSM pour comprendre
 
-- Les pointeurs sur variables locales ne sont pas supportés (pile vs mémoire MSM)
-- Les tableaux sont traités comme des zones mémoire indexées
-- Pas de vérification de bornes pour les accès tableaux
-- Pas de gestion de la mémoire dynamique
+## 5. Conclusion
+
+Le compilateur marche bien, tous les tests passent. On a respecté ce qui était demandé en cours :
+- Les 4 phases d'analyse
+- La table OP pour les priorités (C3)
+- La table des symboles avec scopes (C5)
+- Les boucles avec labels (C6)
+- Les fonctions avec pile (C7)
+- Les pointeurs et tableaux (C9)
+
+Les principaux bugs venaient de la différence entre ce qu'on avait en tête et comment MSM fonctionne vraiment (surtout pour la mémoire et le halt).
+
+---
+
+## Annexe : Structure des fichiers
+
+- `AnalyseurLexicale.py` : Découpage en tokens (C1)
+- `AnalyseurSyntaxique.py` : Construction de l'AST (C2/C3)
+- `AnalyseurSemantique.py` : Table des symboles (C5)
+- `ast_nodes.py` : Définition des types de noeuds
+- `ops.py` : Tables OP et NF, génération MSM
+- `main.py` : Point d'entrée, orchestration des phases
+- `run_tests.py` : Script de test automatique
+- `tests/` : 24 fichiers de test .c
