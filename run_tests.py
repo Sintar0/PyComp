@@ -41,6 +41,7 @@ EXPECTED_OUTPUTS = {
     "22_break_continue.c": "9\n",
     "23_pointeurs_tableaux.c": "42\n100\n",
     "24_for_simple.c": "10\n",
+}
 # Couleurs pour le terminal
 GREEN = "\033[92m"
 RED = "\033[91m"

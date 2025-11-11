@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
 from ast_nodes import NodeTypes
 
-# Pile de tables (un dict par bloc)
 _TS_STACK = []
-NBvar = 0  # compteur global de variables (indexation)
+NBvar = 0  
 
 class SemError(Exception):
     pass
@@ -39,7 +37,6 @@ def SemNode(N):
 
     t = N.type
 
-    # nd_block : ouvre/ferme un scope et descend
     if t == NodeTypes.node_block:
         beginBlock()
         for c in N.enfants:
@@ -47,23 +44,17 @@ def SemNode(N):
         endBlock()
         return
 
-    # nd_decl(name) : réserve un index
     if t == NodeTypes.node_declare:
         sym = declare(N.chaine)
         sym["index"] = NBvar
         NBvar += 1
-        # on garde le nom dans N.chaine, pas besoin d'enfants
         return
 
-    # nd_ref(name) : annote la valeur = index trouvé
     if t == NodeTypes.node_reference:
         sym = find(N.chaine)
         N.valeur = sym["index"]
         return
-
-    # nd_call (fonction)
     if t == NodeTypes.node_call:
-        # vérifier que le nom de la fonction est bien déclaré
         if len(N.enfants) < 1:
             raise SemError("Appel de fonction mal formé")
         func_name_node = N.enfants[0]
@@ -72,7 +63,6 @@ def SemNode(N):
         sym = find(func_name_node.chaine)
         if sym["type"] != "fonction":
             raise SemError(f"'{func_name_node.chaine}' n'est pas une fonction")
-        # Traiter les arguments
         for arg in N.enfants[1:]:
             SemNode(arg)
         return
@@ -83,11 +73,10 @@ def SemNode(N):
         if func_name_node.type != NodeTypes.node_reference:
             raise SemError("Le nom de la fonction doit être une référence")
         declare(func_name_node.chaine, "fonction")
-        # Sauvegarder NBvar global et réinitialiser pour la fonction
         saved_nbvar = NBvar
-        NBvar = 0  # ← CORRECTION: Réinitialiser l'indexation locale
+        NBvar = 0
         beginBlock()
-        for param in N.enfants[1:-1]:  # paramètres
+        for param in N.enfants[1:-1]: 
             if param.type != NodeTypes.node_reference:
                 raise SemError("Les paramètres de la fonction doivent être des références")
             sym = declare(param.chaine, "var")
@@ -96,43 +85,35 @@ def SemNode(N):
         body = N.enfants[-1]
         SemNode(body)
         endBlock()
-        N.nbvar = NBvar  #Nombre total de variables locales
-        NBvar = saved_nbvar  # Restaurer NBvar global
+        N.nbvar = NBvar 
+        NBvar = saved_nbvar 
         return
     
-    # node_indirection : *P (déréférencement)
     if t == NodeTypes.node_indirection:
         SemNode(N.enfants[0])
         return
     
-    # node_address : &P (adresse de)
     if t == NodeTypes.node_address:
         SemNode(N.enfants[0])
         return
     
-    # node_array_access : A[E] ou [E]A
     if t == NodeTypes.node_array_access:
         SemNode(N.enfants[0])  
         SemNode(N.enfants[1])  
         return
     
-    # autres : descente simple
     for c in N.enfants:
         SemNode(c)
 
-
-    # nd_affect(ref, expr) : check que gauche=ref/indirection/array_access, sémantique des enfants
     if t == NodeTypes.node_affect:
         if len(N.enfants) < 2:
             raise SemError("Affectation mal formée")
-        lhs, rhs = N.enfants[0], N.enfants[1]
-        SemNode(lhs)
-        SemNode(rhs)
-        # Accepter référence, indirection (*p) ou accès tableau (arr[i])
-        if lhs.type not in [NodeTypes.node_reference, NodeTypes.node_indirection, NodeTypes.node_array_access]:
-            raise SemError("LHS d'une affectation doit être une référence, *p ou arr[i]")
+        lvalue, rvalue = N.enfants[0], N.enfants[1]
+        SemNode(lvalue)
+        SemNode(rvalue)
+        if lvalue.type not in [NodeTypes.node_reference, NodeTypes.node_indirection, NodeTypes.node_array_access]:
+            raise SemError("La lvalue d'une affectation doit être une référence, *p ou arr[i]")
         return
 
-    # autres : descente simple
     for c in N.enfants:
         SemNode(c)
